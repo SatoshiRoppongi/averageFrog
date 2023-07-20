@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Average Frog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: black;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!--
+    <script src="/content/aaf062f335f9745dbc1281ce37c6fca8a92cfa7f9c246cd9cd810804103b0ab1i0"></script>
+    <script src="/content/a259cd0e821f72c857efe74d0fc18005aeba56c79b3a2361e99d47d32be0cee6i0"></script>
+    <script>
+        const inscriptionIds = bitcoinFrogsIds1.concat(bitcoinFrogsIds2);
+    </script>
+-->
+    <script>
+        // const imageUrls = inscriptionIds.map(ids => `/content/${ids}`);
+        const imageUrls = ['./frog1.webp', './frog2.webp', './frog3.webp', './frog4.webp']
+        console.log('test');
+        console.log(imageUrls);
+
+        window.loadImage = (url) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    resolve(img);
+                };
+                img.onerror = () => {
+                    reject(new Error('loadError'));
+                };
+                img.src = url;
+            });
+        };
+
+        const batchSize = 100; // 1回の処理でロードする画像の数
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        let totalPixel = new Array();
+        canvas.width = 576;
+        canvas.height = 576;
+        let dst = context.createImageData(canvas.width, canvas.height);
+        let currentIndex = 0;
+
+        function loadImageBatchAndProcess() {
+            const batchUrls = imageUrls.slice(currentIndex, currentIndex + batchSize);
+            if (batchUrls.length === 0) return; // すべての画像を処理済み
+
+            const batchImagePromises = batchUrls.map(url => window.loadImage(url));
+            Promise.all(batchImagePromises)
+                .then(images => {
+                    for (const image of images) {
+                        context.drawImage(image, 0, 0);
+                        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                        const pixelData = imageData.data;
+                        for (let i = 0; i < pixelData.length; i += 4) {
+                            totalPixel[i] = totalPixel[i] !== undefined ? totalPixel[i] + pixelData[i] : 0;
+                            totalPixel[i + 1] = totalPixel[i + 1] !== undefined ? totalPixel[i + 1] + pixelData[i + 1] : 0;
+                            totalPixel[i + 2] = totalPixel[i + 2] !== undefined ? totalPixel[i + 2] + pixelData[i + 2] : 0;
+                            totalPixel[i + 3] = totalPixel[i + 3] !== undefined ? totalPixel[i + 3] + pixelData[i + 3] : 0;
+                        }
+                    }
+
+                    currentIndex += batchSize;
+                    dst.data.set(totalPixel);
+                    for (let i = 0; i < totalPixel.length; i += 4) {
+                        dst.data[i] = Math.round(totalPixel[i] / currentIndex);
+                        dst.data[i + 1] = Math.round(totalPixel[i + 1] / currentIndex);
+                        dst.data[i + 2] = Math.round(totalPixel[i + 2] / currentIndex);
+                        dst.data[i + 3] = Math.round(totalPixel[i + 3] / currentIndex);
+                    }
+
+                    context.putImageData(dst, 0, 0);
+                    document.body.appendChild(canvas);
+
+                    // 順次次のバッチをロード
+                    loadImageBatchAndProcess();
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        }
+
+        loadImageBatchAndProcess();
+
+    </script>
+</body>
+
+</html>
